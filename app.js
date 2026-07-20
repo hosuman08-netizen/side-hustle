@@ -3,6 +3,7 @@
   var SHARE_BASE='https://hosuman08-netizen.github.io/side-hustle/';
   function load(){try{return JSON.parse(localStorage.getItem(K)||'{"rows":[]}');}catch(e){return{rows:[]};}}
   function save(s){localStorage.setItem(K,JSON.stringify(s));}
+  function monthTotal(s){return (s.rows||[]).reduce(function(a,b){return a+(+b.amt||0);},0);}
   function dayKey(off){
     var d=new Date(); d.setDate(d.getDate()+(off||0));
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -49,7 +50,7 @@
     var ready=!st.shieldLast||((new Date(dayKey(0))-new Date(st.shieldLast))/86400000)>=7;
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님</div>'
       +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span></div>'
-      +'<div class="card"><input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button id="add">기록</button></div>'
+      +'<div class="card"><input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button></div>'
       +'<div class="card" id="list"></div>'
       +'<div class="card" id="moneyPipe" style="text-align:center;font-size:12px">'
       +'<div style="color:#67e8f9;font-weight:700;margin-bottom:6px">💎 투명 루프</div>'
@@ -73,6 +74,7 @@
       else if(navigator.clipboard) navigator.clipboard.writeText(text);
       try{legionTrack('share_peak',{})}catch(e){}
     };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-q]'),function(b){b.onclick=function(){var p=b.getAttribute('data-q').split('|');s.rows.push({job:p[0],won:+p[1],hrs:2,t:Date.now()});save(s);bumpStreak();render();try{legionTrack('activate',{quick:1})}catch(e){}};});
     document.getElementById('add').onclick=function(){
       s.rows.push({job:document.getElementById('job').value||'부업',won:+document.getElementById('won').value||0,hrs:+document.getElementById('hrs').value||0,t:Date.now()});
       save(s);bumpStreak();render();try{legionTrack('activate',{})}catch(e){} try{legionTrack('money_pipe_shown',{app:'sidehustle'})}catch(e){}

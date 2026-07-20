@@ -55,6 +55,23 @@
     var cut=Date.now()-7*864e5;
     return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut?(+r.won||0):0);},0);
   }
+  function todaySum(){
+    var t0=new Date(); t0.setHours(0,0,0,0); var cut=t0.getTime();
+    return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut?(+r.won||0):0);},0);
+  }
+  function weekSpark(){
+    var days=[], max=1;
+    for(var i=6;i>=0;i--){
+      var d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+      var start=d.getTime(), end=start+864e5;
+      var v=s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=start&&t<end?(+r.won||0):0);},0);
+      days.push({k:(d.getMonth()+1)+'/'+d.getDate(),v:v}); if(v>max)max=v;
+    }
+    return days.map(function(d){
+      var h=Math.max(3,Math.round((d.v/max)*36));
+      return '<div title="'+d.k+': '+d.v.toLocaleString()+'" style="flex:1;height:40px;display:flex;align-items:flex-end"><div style="width:100%;height:'+h+'px;background:'+(d.v?'#67e8f9':'#2a2438')+';border-radius:3px 3px 0 0"></div></div>';
+    }).join('');
+  }
   function byJob(){
     var m={};
     s.rows.forEach(function(r){var j=r.job||'기타'; m[j]=(m[j]||0)+(+r.won||0);});
@@ -68,10 +85,13 @@
     var ready=!st.shieldLast||((new Date(dayKey(0))-new Date(st.shieldLast))/86400000)>=7;
     var goal=+(localStorage.getItem('shl_goal')||500000);
     var gPct=goal?Math.min(100,Math.round(t/goal*100)):0;
-    var ws=weekSum(); var mTip=monthPaceTip(t, goal);
+    var ws=weekSum(); var ts=todaySum(); var mTip=monthPaceTip(t, goal);
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님</div>'
-      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span> <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
-      +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div><p class="sub" style="margin-top:6px">'+mTip+'</p></div>'
+      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span> <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
+      +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div>'
+      +'<div class="row" style="gap:4px;margin-top:10px;align-items:flex-end;height:44px">'+weekSpark()+'</div>'
+      +'<p class="sub" style="margin:4px 0 0">7일 수입 스파크</p>'
+      +'<p class="sub" style="margin-top:6px">'+mTip+'</p></div>'
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'

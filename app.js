@@ -98,7 +98,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'
-      +'<div class="card" id="jobBox"><b>부업별</b><div id="jobs" class="sub" style="margin-top:6px"></div></div>'
+      +'<div class="card"><b>7일 수입</b><div id="shlSpark" style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px"></div></div>'+'<div class="card" id="jobBox"><b>부업별</b><div id="jobs" class="sub" style="margin-top:6px"></div></div>'
       +'<div class="card" id="list"></div>'
       +'<div class="card" id="moneyPipe" style="text-align:center;font-size:12px">'
       +'<div style="color:#67e8f9;font-weight:700;margin-bottom:6px">💎 투명 루프</div>'
@@ -107,6 +107,17 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<a style="color:#e0b552;margin:0 6px" href="https://hosuman08-netizen.github.io/legion-hub/?utm_source=sidehustle&utm_medium=pipe">🎮 Arcade</a>'
       +'</div>'
       +'<button id="shareSum" style="width:100%;margin-top:8px;padding:11px;border:0;border-radius:10px;background:#1c1826;color:#ece8f1;font-weight:700">요약 공유</button>';
+    var sp=document.getElementById('shlSpark');
+    if(sp){
+      var vals=[],max=1;
+      for(var i=6;i>=0;i--){
+        var d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+        var n0=d.getTime(), n1=n0+864e5;
+        var sum=s.rows.reduce(function(a,r){return a+((r.t||0)>=n0&&(r.t||0)<n1?(+r.won||0):0);},0);
+        vals.push(sum); if(sum>max)max=sum;
+      }
+      sp.innerHTML=vals.map(function(n){var h=Math.max(3,Math.round(n/max*28));return '<div style="flex:1;height:'+h+'px;background:'+(n>0?'#67e8f9':'#2a2438')+';border-radius:2px"></div>';}).join('');
+    }
     var jb=document.getElementById('jobs');
     if(jb){
       var tops=byJob().slice(0,6);

@@ -42,6 +42,15 @@
     var ms=Math.max(0,end-Date.now());
     return Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m';
   }
+  function monthPaceTip(total, goal){
+    var now=new Date();
+    var dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    var day=now.getDate();
+    var leftDays=Math.max(1,dim-day+1);
+    var need=Math.max(0,goal-total);
+    var per=Math.round(need/leftDays);
+    return '월말까지 일 '+per.toLocaleString()+'원 페이스 · 잔여일 '+leftDays;
+  }
   function weekSum(){
     var cut=Date.now()-7*864e5;
     return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut?(+r.won||0):0);},0);
@@ -59,10 +68,10 @@
     var ready=!st.shieldLast||((new Date(dayKey(0))-new Date(st.shieldLast))/86400000)>=7;
     var goal=+(localStorage.getItem('shl_goal')||500000);
     var gPct=goal?Math.min(100,Math.round(t/goal*100)):0;
-    var ws=weekSum();
+    var ws=weekSum(); var mTip=monthPaceTip(t, goal);
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님</div>'
       +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span> <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
-      +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div></div>'
+      +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div><p class="sub" style="margin-top:6px">'+mTip+'</p></div>'
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'

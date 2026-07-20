@@ -76,9 +76,20 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     }).join('');
   }
   function byJob(){
-    var m={};
-    s.rows.forEach(function(r){var j=r.job||'기타'; m[j]=(m[j]||0)+(+r.won||0);});
-    return Object.keys(m).map(function(k){return{j:k,a:m[k]};}).sort(function(a,b){return b.a-a.a;});
+    var m={}, hrs={};
+    s.rows.forEach(function(r){
+      var j=r.job||'기타';
+      m[j]=(m[j]||0)+(+r.won||0);
+      hrs[j]=(hrs[j]||0)+(+r.hrs||0);
+    });
+    return Object.keys(m).map(function(k){
+      var rate=hrs[k]?Math.round(m[k]/hrs[k]):0;
+      return{j:k,a:m[k],h:hrs[k]||0,rate:rate};
+    }).sort(function(a,b){return b.a-a.a;});
+  }
+  function prevWeekSum(){
+    var cut0=Date.now()-14*864e5, cut1=Date.now()-7*864e5;
+    return s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=cut0&&t<cut1?(+r.won||0):0);},0);
   }
   function render(){
     var t=sum(), h=hours(), rate=h?Math.round(t/h):0;
@@ -88,9 +99,11 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     var ready=!st.shieldLast||((new Date(dayKey(0))-new Date(st.shieldLast))/86400000)>=7;
     var goal=+(localStorage.getItem('shl_goal')||500000);
     var gPct=goal?Math.min(100,Math.round(t/goal*100)):0;
-    var ws=weekSum(); var ts=todaySum(); var mTip=monthPaceTip(t, goal);
+    var ws=weekSum(); var pws=prevWeekSum(); var wDelta=ws-pws; var ts=todaySum(); var mTip=monthPaceTip(t, goal);
+    var jobRates=byJob().slice().sort(function(a,b){return b.rate-a.rate;});
+    var topRate=jobRates.length&&jobRates[0].rate?jobRates[0]:null;
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님</div>'
-      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span> <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
+      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">전주대비 <b style="color:'+(wDelta>=0?'#67e8f9':'#f87171')+'">'+(wDelta>=0?'+':'')+wDelta.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span>'+(topRate?' <span class="chip">TOP시급 <b>'+topRate.j+' '+topRate.rate.toLocaleString()+'</b></span>':'')+' <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
       +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div>'
       +'<div class="row" style="gap:4px;margin-top:10px;align-items:flex-end;height:44px">'+weekSpark()+'</div>'
       +'<p class="sub" style="margin:4px 0 0">7일 수입 스파크</p>'
@@ -123,7 +136,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       var tops=byJob().slice(0,6);
       jb.innerHTML=tops.length?tops.map(function(x){
         var p=t?Math.round(x.a/t*100):0;
-        return '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+x.j+'</span><b>'+x.a.toLocaleString()+' ('+p+'%)</b></div>';
+        return '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+x.j+(x.rate?' · '+x.rate.toLocaleString()+'/h':'')+'</span><b>'+x.a.toLocaleString()+' ('+p+'%)</b></div>';
       }).join(''):'기록 후 자동 집계';
     }
     if(!s.rows.length){

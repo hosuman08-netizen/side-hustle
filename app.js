@@ -14,6 +14,12 @@
     document.getElementById('list').innerHTML=s.rows.slice().reverse().slice(0,15).map(function(r){
       return '<div style="padding:6px 0;border-bottom:1px solid #2a2438">'+r.job+' · '+r.won.toLocaleString()+'원 · '+r.hrs+'h</div>';
     }).join('')||'<span class="sub">기록 없음</span>';
+    if(!document.getElementById('shareSum')){
+      var b=document.createElement('button'); b.id='shareSum'; b.style.cssText='width:100%;margin-top:8px;padding:11px;border:0;border-radius:10px;background:#1c1826;color:#ece8f1;font-weight:700';
+      b.textContent='요약 공유'; b.onclick=function(){var text='부업 '+sum().toLocaleString()+'원 / '+hours()+'h · https://hosuman08-netizen.github.io/side-hustle/';
+        if(navigator.clipboard)navigator.clipboard.writeText(text);try{legionTrack('share_peak',{})}catch(e){}};
+      root.appendChild(b);
+    }
     document.getElementById('add').onclick=function(){
       s.rows.push({job:document.getElementById('job').value||'부업',won:+document.getElementById('won').value||0,hrs:+document.getElementById('hrs').value||0,t:Date.now()});
       save(s);render();try{legionTrack('activate',{})}catch(e){}

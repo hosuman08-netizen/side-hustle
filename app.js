@@ -129,6 +129,7 @@
     if(sg) sg.onclick=function(){localStorage.setItem('shl_goal',String(+document.getElementById('goal').value||500000));render();try{legionTrack('goal',{})}catch(e){}};
     var ub=document.getElementById('undo');
     if(ub) ub.onclick=function(){if(!s.rows.length)return;s.rows.pop();save(s);render();try{legionTrack('undo',{})}catch(e){}};
+    if(!document.getElementById('exportCsv')){var bx=document.createElement('button'); bx.id='exportCsv'; bx.className='sec'; bx.style.width='100%'; bx.style.marginTop='8px'; bx.textContent='CSV 복사'; bx.onclick=function(){var rows=s.rows.map(function(r){return [r.job,r.won,r.hrs].join(',');}).join('\n'); if(navigator.clipboard)navigator.clipboard.writeText('job,won,hrs\n'+rows); try{legionTrack('share_peak',{csv:1})}catch(e){}}; var app=document.getElementById('app'); if(app) app.appendChild(bx);}
     document.getElementById('shareSum').onclick=function(){
       var text='부업 '+sum().toLocaleString()+'원 / 7일 '+weekSum().toLocaleString()+' · 시급 '+rate.toLocaleString()+'\n'+shareUrl()+'\n로컬 장부 · 투자권유 아님';
       if(navigator.share) navigator.share({text:text,url:shareUrl()}).catch(function(){});

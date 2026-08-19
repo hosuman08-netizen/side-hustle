@@ -64,6 +64,40 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   }
   function timerHrs(t){return Math.round((timerMs(t)/3600000)*10)/10;}
   /* WAVE189: 오늘행 탭=#job 포커스. APY/은행 0. 입력·버튼·영수증은 그대로 */
+  /* WAVE193: 포커스 후 #job 링 0.4s. 타이머·영수증 훔치지 않음 */
+  var jobRingTok=0;
+  function todayJobFocusRingMs(){ return 400; }
+  function todayJobFocusRingOn(el){
+    el=el||(typeof document!=='undefined'?document.getElementById('job'):null);
+    if(!el) return false;
+    if(el._ringT) return true;
+    if(el.getAttribute&&el.getAttribute('data-focus-ring')==='1') return true;
+    return false;
+  }
+  function clearTodayJobFocusRing(){
+    var el=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(!el) return;
+    el.style.outline='';
+    el.style.outlineOffset='';
+    el.style.boxShadow='';
+    if(el.setAttribute) el.setAttribute('data-focus-ring','0');
+    el._ringT=0;
+  }
+  function armTodayJobFocusRing(){
+    var el=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(!el) return false;
+    el.style.outline='2px solid #67e8f9';
+    el.style.outlineOffset='2px';
+    el.style.boxShadow='0 0 0 4px #67e8f955';
+    if(el.setAttribute) el.setAttribute('data-focus-ring','1');
+    if(el._ringT) try{clearTimeout(el._ringT);}catch(e0){}
+    var tok=++jobRingTok;
+    el._ringT=setTimeout(function(){
+      if(tok!==jobRingTok) return;
+      clearTodayJobFocusRing();
+    }, todayJobFocusRingMs());
+    return true;
+  }
   function focusTodayJob(){
     var inp=typeof document!=='undefined'?document.getElementById('job'):null;
     if(!inp) return false;
@@ -72,6 +106,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     if(inp.setAttribute) inp.setAttribute('data-job-focus','1');
     var row=typeof document!=='undefined'?document.getElementById('todayRow'):null;
     if(row&&row.setAttribute) row.setAttribute('data-job-focus','1');
+    armTodayJobFocusRing();
     return true;
   }
   function todayRowTapShouldFocus(t){

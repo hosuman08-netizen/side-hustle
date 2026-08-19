@@ -63,6 +63,26 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     return Math.max(0,(t.stop||Date.now())-t.start);
   }
   function timerHrs(t){return Math.round((timerMs(t)/3600000)*10)/10;}
+  /* WAVE189: 오늘행 탭=#job 포커스. APY/은행 0. 입력·버튼·영수증은 그대로 */
+  function focusTodayJob(){
+    var inp=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(!inp) return false;
+    try{ if(!inp.hasAttribute||!inp.hasAttribute('tabindex')) inp.setAttribute('tabindex','0'); }catch(e0){}
+    try{ if(inp.focus) inp.focus(); }catch(e1){}
+    if(inp.setAttribute) inp.setAttribute('data-job-focus','1');
+    var row=typeof document!=='undefined'?document.getElementById('todayRow'):null;
+    if(row&&row.setAttribute) row.setAttribute('data-job-focus','1');
+    return true;
+  }
+  function todayRowTapShouldFocus(t){
+    if(!t) return false;
+    var tag=(t.tagName||'').toLowerCase();
+    if(tag==='input'||tag==='button'||tag==='a'||tag==='select'||tag==='textarea'||tag==='label') return false;
+    if(t.closest){
+      if(t.closest('input,button,a,select,textarea,label,#timerCard,#receiptOut')) return false;
+    }
+    return true;
+  }
   function tickTimer(){
     var el=document.getElementById('tmEl');
     if(!el) return;
@@ -139,8 +159,8 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     var topRate=jobRates.length&&jobRates[0].rate?jobRates[0]:null;
     /* GOLD50 TOP1: Wave/FreshBooks — 오늘 1행 폼 최상단. 통계 뒤로. APY/은행 0 */
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님 · 허위수입 없음</div>'
-      +'<div class="card" id="todayRow"><b>오늘 1행</b> <span class="chip">TTV</span>'
-      +'<p class="sub" style="margin:4px 0 6px">일감·원·시간 · 통계는 아래 · APY/은행 0</p>'
+      +'<div class="card" id="todayRow" data-tap-focus="1"><b style="cursor:pointer" title="탭=부업명 포커스">오늘 1행</b> <span class="chip">TTV</span>'
+      +'<p class="sub" style="margin:4px 0 6px">일감·원·시간 · 탭=부업명 · 통계는 아래 · APY/은행 0</p>'
       +'<div class="row" style="margin:6px 0"><button id="signIn"'+(signPref!=='-'?'':' class="sec"')+'>수입 +</button><button id="signOut"'+(signPref==='-'?'':' class="sec"')+'>비용 −</button></div>'
       +'<p class="sub" style="margin:0 0 4px">부호만 · 허위수익/APY 없음 · 입력 숫자만</p>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="'+(signPref==='-'?'비용(원)':'수입(원)')+'"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
@@ -242,6 +262,23 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     var ub=document.getElementById('undo');
     if(ub) ub.onclick=function(){if(!s.rows.length)return;s.rows.pop();save(s);render();try{legionTrack('undo',{})}catch(e){}};
     if(!document.getElementById('exportCsv')){var bx=document.createElement('button'); bx.id='exportCsv'; bx.className='sec'; bx.style.width='100%'; bx.style.marginTop='8px'; bx.textContent='CSV 복사'; bx.onclick=function(){var rows=s.rows.map(function(r){return [r.job,r.sign==='-'?'-':'+',r.won,r.hrs].join(',');}).join('\n'); if(navigator.clipboard)navigator.clipboard.writeText('job,sign,won,hrs\n'+rows); try{legionTrack('share_peak',{csv:1})}catch(e){}}; var app=document.getElementById('app'); if(app) app.appendChild(bx);}
+    var tr=document.getElementById('todayRow');
+    if(tr){
+      try{ if(!tr.hasAttribute||!tr.hasAttribute('tabindex')) tr.setAttribute('tabindex','-1'); }catch(e0){}
+      tr.onclick=function(ev){
+        var t=ev&&(ev.target||ev.srcElement);
+        if(!todayRowTapShouldFocus(t)) return;
+        focusTodayJob();
+      };
+      tr.onkeydown=function(ev){
+        if(!ev) return;
+        if(ev.key!=='Enter'&&ev.key!==' ') return;
+        var t=ev.target||ev.srcElement;
+        if(t&&t!==tr) return;
+        ev.preventDefault();
+        focusTodayJob();
+      };
+    }
     var si=document.getElementById('signIn');
     if(si) si.onclick=function(){signPref='+'; try{localStorage.setItem('shl_sign','+');}catch(e){} render();};
     var so=document.getElementById('signOut');

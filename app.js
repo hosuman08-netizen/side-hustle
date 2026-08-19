@@ -46,8 +46,13 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     }catch(e){return {count:0};}
   }
   var s=load(); var root=document.getElementById('app');
-  function sum(){return s.rows.reduce(function(a,b){return a+(+b.won||0);},0);}
-  function hours(){return s.rows.reduce(function(a,b){return a+(+b.hrs||0);},0);}
+  var signPref='+';
+  try{signPref=localStorage.getItem('shl_sign')||'+';}catch(e){}
+  /* GOLD50 TOP3: 수입 vs 비용 — 부호만. APY/가짜수익 금지. 숫자=유저입력 */
+  function sumIn(){return s.rows.reduce(function(a,b){return a+(b.sign==='-'?0:(+b.won||0));},0);}
+  function sumOut(){return s.rows.reduce(function(a,b){return a+(b.sign==='-'?(+b.won||0):0);},0);}
+  function sum(){return sumIn();}
+  function hours(){return s.rows.reduce(function(a,b){return a+(b.sign==='-'?0:(+b.hrs||0));},0);}
   function fomoLeft(){
     var end=new Date(); end.setHours(24,0,0,0);
     var ms=Math.max(0,end-Date.now());
@@ -64,18 +69,18 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   }
   function weekSum(){
     var cut=Date.now()-7*864e5;
-    return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut?(+r.won||0):0);},0);
+    return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut&&r.sign!=='-'?(+r.won||0):0);},0);
   }
   function todaySum(){
     var t0=new Date(); t0.setHours(0,0,0,0); var cut=t0.getTime();
-    return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut?(+r.won||0):0);},0);
+    return s.rows.reduce(function(a,r){return a+((r.t||0)>=cut&&r.sign!=='-'?(+r.won||0):0);},0);
   }
   function weekSpark(){
     var days=[], max=1;
     for(var i=6;i>=0;i--){
       var d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
       var start=d.getTime(), end=start+864e5;
-      var v=s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=start&&t<end?(+r.won||0):0);},0);
+      var v=s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=start&&t<end&&r.sign!=='-'?(+r.won||0):0);},0);
       days.push({k:(d.getMonth()+1)+'/'+d.getDate(),v:v}); if(v>max)max=v;
     }
     return days.map(function(d){
@@ -86,6 +91,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   function byJob(){
     var m={}, hrs={};
     s.rows.forEach(function(r){
+      if(r.sign==='-') return;
       var j=r.job||'기타';
       m[j]=(m[j]||0)+(+r.won||0);
       hrs[j]=(hrs[j]||0)+(+r.hrs||0);
@@ -97,10 +103,11 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   }
   function prevWeekSum(){
     var cut0=Date.now()-14*864e5, cut1=Date.now()-7*864e5;
-    return s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=cut0&&t<cut1?(+r.won||0):0);},0);
+    return s.rows.reduce(function(a,r){var t=r.t||0; return a+(t>=cut0&&t<cut1&&r.sign!=='-'?(+r.won||0):0);},0);
   }
   function render(){
     var t=sum(), h=hours(), rate=h?Math.round(t/h):0;
+    var out=sumOut(), net=t-out;
     try{var br=+(localStorage.getItem('shl_best')||0); if(rate>br){localStorage.setItem('shl_best',rate);br=rate;} }catch(e){var br=rate;}
     var st=JSON.parse(localStorage.getItem('shl_streak')||'{}');
     var sc=st.count||0;
@@ -111,20 +118,22 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     var jobRates=byJob().slice().sort(function(a,b){return b.rate-a.rate;});
     var topRate=jobRates.length&&jobRates[0].rate?jobRates[0]:null;
     root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님 · 허위수입 없음</div>'
-      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">전주대비 <b style="color:'+(wDelta>=0?'#67e8f9':'#f87171')+'">'+(wDelta>=0?'+':'')+wDelta.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span>'+(topRate?' <span class="chip">TOP시급 <b>'+topRate.j+' '+topRate.rate.toLocaleString()+'</b></span>':'')+' <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
+      +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">비용 <b style="color:#f87171">'+out.toLocaleString()+'</b></span> <span class="chip">순액 <b>'+net.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">전주대비 <b style="color:'+(wDelta>=0?'#67e8f9':'#f87171')+'">'+(wDelta>=0?'+':'')+wDelta.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span>'+(topRate?' <span class="chip">TOP시급 <b>'+topRate.j+' '+topRate.rate.toLocaleString()+'</b></span>':'')+' <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
       +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div>'
       +'<div class="row" style="gap:4px;margin-top:10px;align-items:flex-end;height:44px">'+weekSpark()+'</div>'
       +'<p class="sub" style="margin:4px 0 0">7일 수입 스파크</p>'
       +'<p class="sub" style="margin-top:6px">'+mTip+'</p></div>'
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
-      +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
+      +'<div class="row" style="margin:6px 0"><button id="signIn"'+(signPref!=='-'?'':' class="sec"')+'>수입 +</button><button id="signOut"'+(signPref==='-'?'':' class="sec"')+'>비용 −</button></div>'
+      +'<p class="sub" style="margin:0 0 4px">부호만 · 허위수익/APY 없음 · 입력 숫자만</p>'
+      +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="'+(signPref==='-'?'비용(원)':'수입(원)')+'"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'
       +'<div class="card"><div class="sub">인보이스 1행 · 청구 기록일 뿐 · 장부 수입에 자동합산 안 함</div>'
       +'<input id="invWho" placeholder="상대/클라이언트"/><input id="invAmt" type="number" placeholder="청구액(원 · 수입 아님)"/>'
       +'<input id="invMemo" placeholder="메모(선택)"/><button class="sec" id="addInv">인보이스 발행</button>'
       +'<div id="invList" class="sub" style="margin-top:8px"></div></div>'
       +'<div class="card"><b>7일 수입</b><div id="shlSpark" style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px"></div></div>'+'<div class="card" id="jobBox"><b>부업별</b><div id="jobs" class="sub" style="margin-top:6px"></div></div>'
-      +'<div class="card" id="rateCard"><b>시급환산</b><p class="sub" style="margin:4px 0 8px">시급 = 금액 ÷ 시간 · 입력한 숫자만 · APY/가짜수익 없음</p><div id="rateList"></div></div>'
+      +'<div class="card" id="rateCard"><b>시급환산</b><p class="sub" style="margin:4px 0 8px">시급 = 수입 ÷ 시간 · 비용 제외 · APY/가짜수익 없음</p><div id="rateList"></div></div>'
       +'<div class="card" id="list"></div>'
       +'<div class="card" id="moneyPipe" style="text-align:center;font-size:12px">'
       +'<div style="color:#67e8f9;font-weight:700;margin-bottom:6px">💎 투명 루프</div>'
@@ -139,7 +148,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       for(var i=6;i>=0;i--){
         var d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
         var n0=d.getTime(), n1=n0+864e5;
-        var sum=s.rows.reduce(function(a,r){return a+((r.t||0)>=n0&&(r.t||0)<n1?(+r.won||0):0);},0);
+        var sum=s.rows.reduce(function(a,r){return a+((r.t||0)>=n0&&(r.t||0)<n1&&r.sign!=='-'?(+r.won||0):0);},0);
         vals.push(sum); if(sum>max)max=sum;
       }
       sp.innerHTML=vals.map(function(n){var h=Math.max(3,Math.round(n/max*28));return '<div style="flex:1;height:'+h+'px;background:'+(n>0?'#67e8f9':'#2a2438')+';border-radius:2px"></div>';}).join('');
@@ -193,7 +202,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     }else{
       document.getElementById('list').innerHTML=s.rows.slice().reverse().slice(0,15).map(function(r,idx){
         var real=s.rows.length-1-idx;
-        return '<div data-del="'+real+'" style="padding:6px 0;border-bottom:1px solid #2a2438;cursor:pointer">'+r.job+' · '+r.won.toLocaleString()+'원 · '+r.hrs+'h <small style="opacity:.5">탭삭제</small></div>';
+        return '<div data-del="'+real+'" style="padding:6px 0;border-bottom:1px solid #2a2438;cursor:pointer">'+(r.sign==='-'?'<span style="color:#f87171">−비용</span> ':'')+r.job+' · '+(r.sign==='-'?'−':'')+(+r.won||0).toLocaleString()+'원 · '+(+r.hrs||0)+'h <small style="opacity:.5">탭삭제</small></div>';
       }).join('');
       Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(row){
         row.onclick=function(){s.rows.splice(+row.getAttribute('data-del'),1);save(s);render();try{legionTrack('del',{})}catch(e){}};
@@ -203,7 +212,11 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     if(sg) sg.onclick=function(){localStorage.setItem('shl_goal',String(+document.getElementById('goal').value||500000));render();try{legionTrack('goal',{})}catch(e){}};
     var ub=document.getElementById('undo');
     if(ub) ub.onclick=function(){if(!s.rows.length)return;s.rows.pop();save(s);render();try{legionTrack('undo',{})}catch(e){}};
-    if(!document.getElementById('exportCsv')){var bx=document.createElement('button'); bx.id='exportCsv'; bx.className='sec'; bx.style.width='100%'; bx.style.marginTop='8px'; bx.textContent='CSV 복사'; bx.onclick=function(){var rows=s.rows.map(function(r){return [r.job,r.won,r.hrs].join(',');}).join('\n'); if(navigator.clipboard)navigator.clipboard.writeText('job,won,hrs\n'+rows); try{legionTrack('share_peak',{csv:1})}catch(e){}}; var app=document.getElementById('app'); if(app) app.appendChild(bx);}
+    if(!document.getElementById('exportCsv')){var bx=document.createElement('button'); bx.id='exportCsv'; bx.className='sec'; bx.style.width='100%'; bx.style.marginTop='8px'; bx.textContent='CSV 복사'; bx.onclick=function(){var rows=s.rows.map(function(r){return [r.job,r.sign==='-'?'-':'+',r.won,r.hrs].join(',');}).join('\n'); if(navigator.clipboard)navigator.clipboard.writeText('job,sign,won,hrs\n'+rows); try{legionTrack('share_peak',{csv:1})}catch(e){}}; var app=document.getElementById('app'); if(app) app.appendChild(bx);}
+    var si=document.getElementById('signIn');
+    if(si) si.onclick=function(){signPref='+'; try{localStorage.setItem('shl_sign','+');}catch(e){} render();};
+    var so=document.getElementById('signOut');
+    if(so) so.onclick=function(){signPref='-'; try{localStorage.setItem('shl_sign','-');}catch(e){} render();};
     document.getElementById('shareSum').onclick=function(){
       var text='부업 '+sum().toLocaleString()+'원 / 7일 '+weekSum().toLocaleString()+' · 시급 '+rate.toLocaleString()+'\n'+shareUrl()+'\n로컬 장부 · 투자권유 아님';
       if(navigator.share) navigator.share({text:text,url:shareUrl()}).catch(function(){});
@@ -212,7 +225,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     };
     Array.prototype.forEach.call(document.querySelectorAll('[data-q]'),function(b){b.onclick=function(){var p=b.getAttribute('data-q').split('|');s.rows.push({job:p[0],won:+p[1],hrs:2,t:Date.now()});save(s);bumpStreak();render();try{legionTrack('activate',{quick:1})}catch(e){}};});
     document.getElementById('add').onclick=function(){
-      s.rows.push({job:document.getElementById('job').value||'부업',won:+document.getElementById('won').value||0,hrs:+document.getElementById('hrs').value||0,t:Date.now()});
+      s.rows.push({job:document.getElementById('job').value||'부업',won:+document.getElementById('won').value||0,hrs:+document.getElementById('hrs').value||0,sign:signPref==='-'?'-':'+',t:Date.now()});
       save(s);bumpStreak();render();try{legionTrack('activate',{})}catch(e){} try{legionTrack('money_pipe_shown',{app:'sidehustle'})}catch(e){}
     };
   }

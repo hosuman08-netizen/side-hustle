@@ -47,7 +47,27 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   }
   var s=load(); var root=document.getElementById('app');
   var signPref='+';
+  var tmTick=null;
   try{signPref=localStorage.getItem('shl_sign')||'+';}catch(e){}
+  /* GOLD50 TOP5: Toggl 원클릭 — 시작/정지 로컬 elapsed → 시간 필드. APY/은행 0 */
+  function loadTimer(){try{return JSON.parse(localStorage.getItem('shl_timer')||'{}');}catch(e){return{};}}
+  function saveTimer(t){try{localStorage.setItem('shl_timer',JSON.stringify(t||{}));}catch(e){}}
+  function fmtElapsed(ms){
+    ms=Math.max(0,+ms||0);
+    var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), sec=Math.floor((ms%60000)/1000);
+    return [h,m,sec].map(function(x){return String(x).padStart(2,'0');}).join(':');
+  }
+  function timerMs(t){
+    t=t||loadTimer();
+    if(t.start==null) return 0;
+    return Math.max(0,(t.stop||Date.now())-t.start);
+  }
+  function timerHrs(t){return Math.round((timerMs(t)/3600000)*10)/10;}
+  function tickTimer(){
+    var el=document.getElementById('tmEl');
+    if(!el) return;
+    el.textContent=fmtElapsed(timerMs());
+  }
   /* GOLD50 TOP3: 수입 vs 비용 — 부호만. APY/가짜수익 금지. 숫자=유저입력 */
   function sumIn(){return s.rows.reduce(function(a,b){return a+(b.sign==='-'?0:(+b.won||0));},0);}
   function sumOut(){return s.rows.reduce(function(a,b){return a+(b.sign==='-'?(+b.won||0):0);},0);}
@@ -126,6 +146,10 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
       +'<div class="row" style="margin:6px 0"><button id="signIn"'+(signPref!=='-'?'':' class="sec"')+'>수입 +</button><button id="signOut"'+(signPref==='-'?'':' class="sec"')+'>비용 −</button></div>'
       +'<p class="sub" style="margin:0 0 4px">부호만 · 허위수익/APY 없음 · 입력 숫자만</p>'
+      +'<div id="timerCard" style="margin:10px 0 8px;padding:10px;border:1px solid #67e8f944;border-radius:12px">'
+      +'<div class="sub" style="margin:0 0 4px">작업 타이머 · 로컬 elapsed · APY 0 · 은행 0</div>'
+      +'<div id="tmEl" style="font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;margin:4px 0 8px">'+fmtElapsed(timerMs())+'</div>'
+      +'<div class="row"><button id="tmStart">시작</button><button class="sec" id="tmStop">정지</button><button class="sec" id="tmUse">시간을 필드에</button></div></div>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="'+(signPref==='-'?'비용(원)':'수입(원)')+'"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'
       +'<div class="card"><div class="sub">인보이스 1행 · 청구 기록일 뿐 · 장부 수입에 자동합산 안 함</div>'
@@ -217,6 +241,34 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     if(si) si.onclick=function(){signPref='+'; try{localStorage.setItem('shl_sign','+');}catch(e){} render();};
     var so=document.getElementById('signOut');
     if(so) so.onclick=function(){signPref='-'; try{localStorage.setItem('shl_sign','-');}catch(e){} render();};
+    if(tmTick){clearInterval(tmTick); tmTick=null;}
+    var ts=document.getElementById('tmStart');
+    if(ts) ts.onclick=function(){
+      var cur=loadTimer();
+      if(cur.start&&!cur.stop) return;
+      saveTimer({start:Date.now()});
+      render();
+      try{legionTrack('activate',{timer:'start'})}catch(e){}
+    };
+    var tp=document.getElementById('tmStop');
+    if(tp) tp.onclick=function(){
+      var cur=loadTimer();
+      if(!cur.start||cur.stop) return;
+      cur.stop=Date.now();
+      saveTimer(cur);
+      render();
+      try{legionTrack('activate',{timer:'stop',hrs:timerHrs(cur)})}catch(e){}
+    };
+    var tu=document.getElementById('tmUse');
+    if(tu) tu.onclick=function(){
+      var hrs=timerHrs();
+      var inp=document.getElementById('hrs');
+      if(inp) inp.value=hrs?String(hrs):'0';
+      try{legionTrack('activate',{timer:'use',hrs:hrs})}catch(e){}
+    };
+    if(loadTimer().start&&!loadTimer().stop){
+      tmTick=setInterval(tickTimer,1000);
+    }
     document.getElementById('shareSum').onclick=function(){
       var text='부업 '+sum().toLocaleString()+'원 / 7일 '+weekSum().toLocaleString()+' · 시급 '+rate.toLocaleString()+'\n'+shareUrl()+'\n로컬 장부 · 투자권유 아님';
       if(navigator.share) navigator.share({text:text,url:shareUrl()}).catch(function(){});

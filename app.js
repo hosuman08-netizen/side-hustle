@@ -66,6 +66,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   /* WAVE189: 오늘행 탭=#job 포커스. APY/은행 0. 입력·버튼·영수증은 그대로 */
   /* WAVE193: 포커스 후 #job 링 0.4s. 타이머·영수증 훔치지 않음 */
   /* WAVE197: 링 중 재탭=링 재시작. data-re-ring. 타이머·영수증 훔치지 않음. APY/은행 0 */
+  /* WAVE200: 링 탭=링 끄기. data-ring-off. 타이머·영수증 훔치지 않음. APY/은행 0 */
   var jobRingTok=0;
   function todayJobFocusRingMs(){ return 400; }
   function todayJobFocusRingOn(el){
@@ -97,6 +98,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     if(el.setAttribute){
       el.setAttribute('data-focus-ring','1');
       el.setAttribute('data-re-ring', retr?'1':'0');
+      el.setAttribute('data-ring-off','0');
     }
     if(el._ringT) try{clearTimeout(el._ringT);}catch(e0){}
     var tok=++jobRingTok;
@@ -104,6 +106,17 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       if(tok!==jobRingTok) return;
       clearTodayJobFocusRing();
     }, todayJobFocusRingMs());
+    return true;
+  }
+  function killTodayJobFocusRing(){
+    jobRingTok++;
+    var el=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(el && el._ringT) try{clearTimeout(el._ringT);}catch(e0){}
+    clearTodayJobFocusRing();
+    if(el && el.setAttribute){
+      el.setAttribute('data-ring-off','1');
+      el.setAttribute('data-ring-tap','1');
+    }
     return true;
   }
   function focusTodayJob(){
@@ -311,6 +324,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       tr.onclick=function(ev){
         var t=ev&&(ev.target||ev.srcElement);
         if(!todayRowTapShouldFocus(t)) return;
+        if(todayJobFocusRingOn()){ killTodayJobFocusRing(); return; }
         focusTodayJob();
       };
       tr.onkeydown=function(ev){
@@ -319,6 +333,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
         var t=ev.target||ev.srcElement;
         if(t&&t!==tr) return;
         ev.preventDefault();
+        if(todayJobFocusRingOn()){ killTodayJobFocusRing(); return; }
         focusTodayJob();
       };
     }

@@ -4,7 +4,15 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
 (function(){
   var K='shl_v1';
   var SHARE_BASE='https://hosuman08-netizen.github.io/side-hustle/';
-  function load(){try{return JSON.parse(localStorage.getItem(K)||'{"rows":[]}');}catch(e){return{rows:[]};}}
+  function load(){
+    try{
+      var raw=JSON.parse(localStorage.getItem(K)||'{"rows":[]}');
+      if(!raw||typeof raw!=='object') return {rows:[],inv:[]};
+      if(!raw.rows) raw.rows=[];
+      if(!raw.inv) raw.inv=[];
+      return raw;
+    }catch(e){return{rows:[],inv:[]};}
+  }
   function save(s){localStorage.setItem(K,JSON.stringify(s));}
   function monthTotal(s){return (s.rows||[]).reduce(function(a,b){return a+(+b.amt||0);},0);}
   function dayKey(off){
@@ -102,7 +110,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     var ws=weekSum(); var pws=prevWeekSum(); var wDelta=ws-pws; var ts=todaySum(); var mTip=monthPaceTip(t, goal);
     var jobRates=byJob().slice().sort(function(a,b){return b.rate-a.rate;});
     var topRate=jobRates.length&&jobRates[0].rate?jobRates[0]:null;
-    root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님</div>'
+    root.innerHTML='<div class="card" style="font-size:11px;color:#67e8f9">투명 금융 · 로컬 장부 · 투자권유 아님 · 허위수입 없음</div>'
       +'<div class="card"><span class="chip">총수입 <b>'+t.toLocaleString()+'</b></span> <span class="chip">오늘 <b>'+ts.toLocaleString()+'</b></span> <span class="chip">7일 <b>'+ws.toLocaleString()+'</b></span> <span class="chip">전주대비 <b style="color:'+(wDelta>=0?'#67e8f9':'#f87171')+'">'+(wDelta>=0?'+':'')+wDelta.toLocaleString()+'</b></span> <span class="chip">건수 <b>'+s.rows.length+'</b></span> <span class="chip">시간 <b>'+h+'</b>h</span> <span class="chip">시급 <b>'+rate.toLocaleString()+'</b></span> <span class="chip">최고 <b>'+(br||rate).toLocaleString()+'</b></span>'+(topRate?' <span class="chip">TOP시급 <b>'+topRate.j+' '+topRate.rate.toLocaleString()+'</b></span>':'')+' <span class="chip">목표 <b>'+gPct+'%</b></span> <span class="chip">🔥 '+sc+'일'+(sc>=3&&ready?' · 🛡️':'')+'</span> <span class="chip">리셋 '+fomoLeft()+'</span>'
       +'<div class="bar" style="height:6px;background:#2a2438;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:'+gPct+'%;background:'+(gPct>=100?'#4ade80':'#67e8f9')+'"></i></div>'
       +'<div class="row" style="gap:4px;margin-top:10px;align-items:flex-end;height:44px">'+weekSpark()+'</div>'
@@ -111,7 +119,12 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<div class="card"><label class="sub">월 목표(원)</label><input id="goal" type="number" value="'+goal+'"/><button class="sec" id="setGoal">목표 저장</button>'
       +'<input id="job" placeholder="부업명"/><input id="won" type="number" placeholder="수입(원)"/><input id="hrs" type="number" step="0.5" placeholder="시간"/><button class="sec" data-q="배달|35000">배달 35k</button><button class="sec" data-q="원고|50000">원고 50k</button><button id="add">기록</button>'
       +'<button class="sec" id="undo" style="margin-top:6px">↩ 직전 취소</button></div>'
+      +'<div class="card"><div class="sub">인보이스 1행 · 청구 기록일 뿐 · 장부 수입에 자동합산 안 함</div>'
+      +'<input id="invWho" placeholder="상대/클라이언트"/><input id="invAmt" type="number" placeholder="청구액(원 · 수입 아님)"/>'
+      +'<input id="invMemo" placeholder="메모(선택)"/><button class="sec" id="addInv">인보이스 발행</button>'
+      +'<div id="invList" class="sub" style="margin-top:8px"></div></div>'
       +'<div class="card"><b>7일 수입</b><div id="shlSpark" style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px"></div></div>'+'<div class="card" id="jobBox"><b>부업별</b><div id="jobs" class="sub" style="margin-top:6px"></div></div>'
+      +'<div class="card" id="rateCard"><b>시급환산</b><p class="sub" style="margin:4px 0 8px">시급 = 금액 ÷ 시간 · 입력한 숫자만 · APY/가짜수익 없음</p><div id="rateList"></div></div>'
       +'<div class="card" id="list"></div>'
       +'<div class="card" id="moneyPipe" style="text-align:center;font-size:12px">'
       +'<div style="color:#67e8f9;font-weight:700;margin-bottom:6px">💎 투명 루프</div>'
@@ -139,10 +152,44 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
         return '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+x.j+(x.rate?' · '+x.rate.toLocaleString()+'/h':'')+'</span><b>'+x.a.toLocaleString()+' ('+p+'%)</b></div>';
       }).join(''):'기록 후 자동 집계';
     }
+    var rl=document.getElementById('rateList');
+    if(rl){
+      var rrows=byJob().slice().sort(function(a,b){return b.rate-a.rate;});
+      if(!s.rows.length){
+        rl.innerHTML='<div class="sub">기록 없음 — 금액과 시간을 넣으면 시급이 나옵니다. 잔액/APY 발명 없음.</div>';
+      }else{
+        var head='<div style="margin-bottom:8px">전체 시급 <b>'+(h?rate.toLocaleString():'—')+'</b>원/h <span class="chip">'+t.toLocaleString()+'원 ÷ '+h+'h</span></div>';
+        rl.innerHTML=head+rrows.map(function(x){
+          var line=x.h?(x.a.toLocaleString()+'원 ÷ '+x.h+'h = <b>'+x.rate.toLocaleString()+'</b>원/h'):(x.a.toLocaleString()+'원 · 시간 0 → 시급 없음');
+          return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #2a2438;font-size:13px"><span>'+x.j+'</span><span style="text-align:right">'+line+'</span></div>';
+        }).join('');
+      }
+    }
+    var invEl=document.getElementById('invList');
+    if(invEl){
+      var invs=s.inv||[];
+      invEl.innerHTML=invs.length?invs.slice().reverse().slice(0,8).map(function(r,idx){
+        var real=invs.length-1-idx;
+        return '<div style="padding:4px 0;display:flex;justify-content:space-between;gap:8px;align-items:center">'
+          +'<span>'+(r.who||'상대')+' · '+(+r.amt||0).toLocaleString()+'원 · '+(r.st||'발행')+(r.memo?' · '+String(r.memo).replace(/</g,'&lt;'):'')+'</span>'
+          +'<button class="sec" data-invdel="'+real+'" style="padding:2px 8px;font-size:11px">삭제</button></div>';
+      }).join('')+'<div class="sub" style="margin-top:4px">인보이스 합계 미포함 · 입금되면 위 장부에 직접 기록</div>':'아직 인보이스 없음 — 빈 행만, 수입 발명 없음';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-invdel]'),function(b){
+        b.onclick=function(){s.inv.splice(+b.getAttribute('data-invdel'),1);save(s);render();};
+      });
+    }
+    var ai=document.getElementById('addInv');
+    if(ai) ai.onclick=function(){
+      var who=(document.getElementById('invWho').value||'').trim()||'상대';
+      var amt=+document.getElementById('invAmt').value||0;
+      var memo=(document.getElementById('invMemo').value||'').trim();
+      s.inv=s.inv||[];
+      s.inv.push({who:who,amt:amt,memo:memo,st:'발행',t:Date.now()});
+      save(s); render();
+      try{legionTrack('invoice',{amt:amt})}catch(e){}
+    };
     if(!s.rows.length){
-      document.getElementById('list').innerHTML='<div class="sub">기록 없음 — 첫 부업을 적으면 시급이 계산됩니다.<br><button id="emptySample" style="margin-top:8px">예시 배달 35000 / 3h</button></div>';
-      var es=document.getElementById('emptySample');
-      if(es) es.onclick=function(){s.rows.push({job:'배달',won:35000,hrs:3,t:Date.now()});save(s);bumpStreak();render();try{legionTrack('activate',{sample:1})}catch(e){}};
+      document.getElementById('list').innerHTML='<div class="sub">수입 기록 없음 — 직접 입력만. 예시금액 자동기입 없음.<br>인보이스는 청구 기록이며 수입이 아닙니다.</div>';
     }else{
       document.getElementById('list').innerHTML=s.rows.slice().reverse().slice(0,15).map(function(r,idx){
         var real=s.rows.length-1-idx;

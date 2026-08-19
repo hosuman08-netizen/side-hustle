@@ -68,6 +68,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   /* WAVE197: 링 중 재탭=링 재시작. data-re-ring. 타이머·영수증 훔치지 않음. APY/은행 0 */
   /* WAVE200: 링 탭=링 끄기. data-ring-off. 타이머·영수증 훔치지 않음. APY/은행 0 */
   /* WAVE204: 끈 뒤 #job 포커스 유지. hold≠arm. 타이머·영수증 훔치지 않음. APY/은행 0 */
+  /* WAVE206: 포커스 링 재탭=재시작 분리. data-re-from-focus. 타이머·영수증 훔치지 않음. APY/은행 0 */
   var jobRingTok=0;
   function todayJobFocusRingMs(){ return 400; }
   function todayJobFocusRingOn(el){
@@ -127,6 +128,17 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     if(!el) return false;
     try{ if(el.focus) el.focus(); }catch(e1){}
     if(el.setAttribute) el.setAttribute('data-focus-after-kill','1');
+    return true;
+  }
+  /* WAVE206: 포커스 링 재탭=재시작 분리 · 킬과 분리 · APY/은행 0 */
+  function restartTodayJobRingFromFocus(){
+    var el=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(!el||!el.getAttribute||el.getAttribute('data-focus-after-kill')!=='1') return false;
+    armTodayJobFocusRing();
+    if(el.setAttribute){
+      el.setAttribute('data-re-ring','1');
+      el.setAttribute('data-re-from-focus','1');
+    }
     return true;
   }
   function focusTodayJob(){
@@ -335,6 +347,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
         var t=ev&&(ev.target||ev.srcElement);
         if(!todayRowTapShouldFocus(t)) return;
         if(todayJobFocusRingOn()){ killTodayJobFocusRing(); return; }
+        if(restartTodayJobRingFromFocus()) return;
         focusTodayJob();
       };
       tr.onkeydown=function(ev){
@@ -344,6 +357,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
         if(t&&t!==tr) return;
         ev.preventDefault();
         if(todayJobFocusRingOn()){ killTodayJobFocusRing(); return; }
+        if(restartTodayJobRingFromFocus()) return;
         focusTodayJob();
       };
     }

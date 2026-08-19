@@ -65,6 +65,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   function timerHrs(t){return Math.round((timerMs(t)/3600000)*10)/10;}
   /* WAVE189: 오늘행 탭=#job 포커스. APY/은행 0. 입력·버튼·영수증은 그대로 */
   /* WAVE193: 포커스 후 #job 링 0.4s. 타이머·영수증 훔치지 않음 */
+  /* WAVE197: 링 중 재탭=링 재시작. data-re-ring. 타이머·영수증 훔치지 않음. APY/은행 0 */
   var jobRingTok=0;
   function todayJobFocusRingMs(){ return 400; }
   function todayJobFocusRingOn(el){
@@ -80,16 +81,23 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     el.style.outline='';
     el.style.outlineOffset='';
     el.style.boxShadow='';
-    if(el.setAttribute) el.setAttribute('data-focus-ring','0');
+    if(el.setAttribute){
+      el.setAttribute('data-focus-ring','0');
+      el.setAttribute('data-re-ring','0');
+    }
     el._ringT=0;
   }
   function armTodayJobFocusRing(){
     var el=typeof document!=='undefined'?document.getElementById('job'):null;
     if(!el) return false;
+    var retr=todayJobFocusRingOn(el);
     el.style.outline='2px solid #67e8f9';
     el.style.outlineOffset='2px';
     el.style.boxShadow='0 0 0 4px #67e8f955';
-    if(el.setAttribute) el.setAttribute('data-focus-ring','1');
+    if(el.setAttribute){
+      el.setAttribute('data-focus-ring','1');
+      el.setAttribute('data-re-ring', retr?'1':'0');
+    }
     if(el._ringT) try{clearTimeout(el._ringT);}catch(e0){}
     var tok=++jobRingTok;
     el._ringT=setTimeout(function(){

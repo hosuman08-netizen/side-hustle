@@ -67,6 +67,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
   /* WAVE193: 포커스 후 #job 링 0.4s. 타이머·영수증 훔치지 않음 */
   /* WAVE197: 링 중 재탭=링 재시작. data-re-ring. 타이머·영수증 훔치지 않음. APY/은행 0 */
   /* WAVE200: 링 탭=링 끄기. data-ring-off. 타이머·영수증 훔치지 않음. APY/은행 0 */
+  /* WAVE204: 끈 뒤 #job 포커스 유지. hold≠arm. 타이머·영수증 훔치지 않음. APY/은행 0 */
   var jobRingTok=0;
   function todayJobFocusRingMs(){ return 400; }
   function todayJobFocusRingOn(el){
@@ -117,6 +118,15 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       el.setAttribute('data-ring-off','1');
       el.setAttribute('data-ring-tap','1');
     }
+    holdTodayJobFocus();
+    return true;
+  }
+  /* WAVE204: 끈 뒤 #job 포커스 유지 · 링 재점화 0 · APY/은행 0 */
+  function holdTodayJobFocus(){
+    var el=typeof document!=='undefined'?document.getElementById('job'):null;
+    if(!el) return false;
+    try{ if(el.focus) el.focus(); }catch(e1){}
+    if(el.setAttribute) el.setAttribute('data-focus-after-kill','1');
     return true;
   }
   function focusTodayJob(){

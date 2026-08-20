@@ -259,7 +259,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<input id="invWho" placeholder="상대/클라이언트"/><input id="invAmt" type="number" placeholder="청구액(원 · 수입 아님)"/>'
       +'<input id="invMemo" placeholder="메모(선택)"/><button class="sec" id="addInv">인보이스 발행</button>'
       +'<div id="invList" class="sub" style="margin-top:8px"></div></div>'
-      +'<div class="card"><b>7일 수입</b><div id="shlSpark" style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px"></div></div>'+'<div class="card" id="jobBox"><b>부업별</b><div id="jobs" class="sub" style="margin-top:6px"></div></div>'
+      +'<div class="card"><b>7일 수입</b><div id="shlSpark" style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px"></div></div>'+'<div class="card" id="jobBox"><b>일감 시급</b><p class="sub" style="margin:4px 0 8px">칩 3개 · 원/시간 · 유저 행만 · 가짜수입 0</p><div id="jobs"></div></div>'
       +'<div class="card" id="rateCard"><b>시급환산</b><p class="sub" style="margin:4px 0 8px">시급 = 수입 ÷ 시간 · 비용 제외 · APY/가짜수익 없음</p><div id="rateList"></div></div>'
       +'<div class="card" id="list"></div>'
       +'<div class="card" id="moneyPipe" style="text-align:center;font-size:12px">'
@@ -282,11 +282,20 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
     }
     var jb=document.getElementById('jobs');
     if(jb){
-      var tops=byJob().slice(0,6);
-      jb.innerHTML=tops.length?tops.map(function(x){
-        var p=t?Math.round(x.a/t*100):0;
-        return '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+x.j+(x.rate?' · '+x.rate.toLocaleString()+'/h':'')+'</span><b>'+x.a.toLocaleString()+' ('+p+'%)</b></div>';
-      }).join(''):'기록 후 자동 집계';
+      /* GOLD50 TOP2 leftover: Harvest/Toggl — 일감 칩 + 원/시간 3줄. 유저 행만. */
+      var tops=byJob().slice().sort(function(a,b){return b.rate-a.rate;}).slice(0,3);
+      if(!tops.length){
+        jb.innerHTML='<span class="chip">행 없음</span><p class="sub" style="margin-top:6px">금액·시간을 넣으면 원/시간 3줄 · 발명 0</p>';
+      }else{
+        var chips=tops.map(function(x){
+          return '<span class="chip">'+x.j+' <b>'+(x.h?x.rate.toLocaleString():'—')+'</b>원/시간</span>';
+        }).join(' ');
+        var lines=tops.map(function(x,i){
+          var line=x.h?(x.a.toLocaleString()+'원 ÷ '+x.h+'h = <b>'+x.rate.toLocaleString()+'</b>원/시간'):(x.a.toLocaleString()+'원 · 시간 0 → 시급 없음');
+          return '<div style="padding:4px 0;border-bottom:1px solid #2a2438;font-size:13px">'+(i+1)+'. '+x.j+' · '+line+'</div>';
+        }).join('');
+        jb.innerHTML=chips+'<div style="margin-top:8px">'+lines+'</div>';
+      }
     }
     var rl=document.getElementById('rateList');
     if(rl){

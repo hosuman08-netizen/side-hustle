@@ -266,7 +266,7 @@ try{var _dk=new Date().toDateString();var _o=JSON.parse(localStorage.getItem('lw
       +'<div style="color:#67e8f9;font-weight:700;margin-bottom:6px">💎 투명 루프</div>'
       +'<a style="color:#ece8f1;margin:0 6px" href="https://hosuman08-netizen.github.io/budget-pulse/?utm_source=sidehustle&utm_medium=pipe">💓 Budget</a>'
       +'<a style="color:#ece8f1;margin:0 6px" href="https://hosuman08-netizen.github.io/cost-basis/?utm_source=sidehustle&utm_medium=pipe">🧮 Cost Basis</a>'
-      +'<a style="color:#e0b552;margin:0 6px" href="https://hosuman08-netizen.github.io/legion-hub/?utm_source=sidehustle&utm_medium=pipe">🎮 Arcade</a>'
+      +''
       +'</div>'
       +'<button id="shareSum" style="width:100%;margin-top:8px;padding:11px;border:0;border-radius:10px;background:#1c1826;color:#ece8f1;font-weight:700">요약 공유</button>';
     var sp=document.getElementById('shlSpark');
